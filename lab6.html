@@ -113,16 +113,19 @@
               }
             },
             visualMap: {
-              min: Math.min(...data.map(d => d.value)),
-              max: Math.max(...data.map(d => d.value)),
-              left: 'left',
-              top: 'bottom',
-              text: ['Maior', 'Menor'],
-              calculable: true,
-              inRange: {
-                color: ['#ffffcc', '#a1dab4', '#41b6c4', '#2c7fb8', '#253494']
-              }
-            },
+                min: Math.min(...data.map(d => d.value)),
+                max: Math.max(...data.map(d => d.value)),
+                left: 'left',
+                top: 'bottom',
+                text: ['Maior Valor Repassado', 'Menor Valor Repassado'],
+                calculable: true,
+                inRange: {
+                  color: ['#ffffcc', '#a1dab4', '#41b6c4', '#2c7fb8', '#253494']
+                },
+                formatter: function (value) {
+                  return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
+                }
+              },
             series: [{
               type: 'map',
               map: 'brazil',
