@@ -61,57 +61,81 @@
       .then(geoJson => {
           echarts.registerMap('brazil', geoJson);
           
-          var regions = {
-              'Norte': ['AC', 'AM', 'AP', 'PA', 'RO', 'RR', 'TO'],
-              'Nordeste': ['AL', 'BA', 'CE', 'MA', 'PB', 'PE', 'PI', 'RN', 'SE'],
-              'Centro-Oeste': ['DF', 'GO', 'MT', 'MS'],
-              'Sudeste': ['ES', 'MG', 'RJ', 'SP'],
-              'Sul': ['PR', 'RS', 'SC']
+          const ufToName = {
+            "AC": "Acre", "AL": "Alagoas", "AM": "Amazonas", "AP": "Amapá", "BA": "Bahia",
+            "CE": "Ceará", "DF": "Distrito Federal", "ES": "Espírito Santo", "GO": "Goiás", "MA": "Maranhão",
+            "MG": "Minas Gerais", "MS": "Mato Grosso do Sul", "MT": "Mato Grosso", "PA": "Pará", "PB": "Paraíba",
+            "PE": "Pernambuco", "PI": "Piauí", "PR": "Paraná", "RJ": "Rio de Janeiro", "RN": "Rio Grande do Norte",
+            "RO": "Rondônia", "RR": "Roraima", "RS": "Rio Grande do Sul", "SC": "Santa Catarina", "SE": "Sergipe",
+            "SP": "São Paulo", "TO": "Tocantins"
           };
-
-          var regionColors = {
-              'Norte': '#ffcc00',
-              'Nordeste': '#ff6600',
-              'Centro-Oeste': '#009900',
-              'Sudeste': '#0033cc',
-              'Sul': '#9900cc'
+  
+          const jsonData = {
+            "qtd_familias_beneficiarias_bolsa_familia_s": {
+              "AC": 1578303, "AL": 6445463, "AM": 1440045, "AP": 7803548, "BA": 29642334,
+              "CE": 17605519, "DF": 2207880, "ES": 3688637, "GO": 6114942, "MA": 14688095,
+              "MG": 19208377, "MS": 2506782, "MT": 3112398, "PA": 16193860, "PB": 8053253,
+              "PE": 19073083, "PI": 7190868, "PR": 7398710, "RJ": 20073168, "RN": 6021453,
+              "RO": 1561137, "RR": 927995, "RS": 7885714, "SC": 2804881, "SE": 4564032,
+              "SP": 30604629, "TO": 1904125
+            },
+            "valor_repassado_bolsa_familia_s": {
+              "AC": 1154054626.0, "AL": 4455359754.0, "AM": 1048206387.0, "AP": 5764710770.0, "BA": 19884160652.0,
+              "CE": 11878041271.0, "DF": 1508301558.0, "ES": 2486503608.0, "GO": 4134908362.0, "MA": 10418226913.0,
+              "MG": 12775181566.0, "MS": 1723979367.0, "MT": 2158366439.0, "PA": 11495038603.0, "PB": 5461720257.0,
+              "PE": 12873122781.0, "PI": 4896263123.0, "PR": 4940227978.0, "RJ": 13429163102.0, "RN": 4038203537.0,
+              "RO": 1074798287.0, "RR": 698783910.0, "RS": 5317673195.0, "SC": 1890903894.0, "SE": 3075824640.0,
+              "SP": 20489712399.0, "TO": 1329995990.0
+            }
           };
-
-          var data = [];
-          Object.keys(regions).forEach(region => {
-              regions[region].forEach(state => {
-                  data.push({
-                      name: state,
-                      value: Math.random() * 1000, 
-                      itemStyle: {
-                          color: regionColors[region]
-                      }
-                  });
-              });
-          });
-
+  
+          // Criar array de dados para o mapa com nomes dos estados completos
+          const data = Object.keys(jsonData.valor_repassado_bolsa_familia_s).map(uf => ({
+            name: ufToName[uf],
+            value: jsonData.valor_repassado_bolsa_familia_s[uf],
+            familias: jsonData.qtd_familias_beneficiarias_bolsa_familia_s[uf]
+          }));
+  
           myChart.hideLoading();
           myChart.setOption({
-              
-              tooltip: {
-                  trigger: 'item'
+            tooltip: {
+              trigger: 'item',
+              formatter: function (params) {
+                if (params.data) {
+                  return `
+                    <strong>${params.name}</strong><br/>
+                    Valor repassado: R$ ${params.data.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br/>
+                    Famílias beneficiadas: ${params.data.familias.toLocaleString('pt-BR')}
+                  `;
+                } else {
+                  return `${params.name}<br/>Sem dados`;
+                }
+              }
+            },
+            visualMap: {
+              min: Math.min(...data.map(d => d.value)),
+              max: Math.max(...data.map(d => d.value)),
+              left: 'left',
+              top: 'bottom',
+              text: ['Maior', 'Menor'],
+              calculable: true,
+              inRange: {
+                color: ['#ffffcc', '#a1dab4', '#41b6c4', '#2c7fb8', '#253494']
+              }
+            },
+            series: [{
+              type: 'map',
+              map: 'brazil',
+              roam: true,
+              emphasis: {
+                label: {
+                  show: true,
+                  fontSize: 14,
+                  fontWeight: 'bold'
+                }
               },
-              visualMap: {
-                  show: false
-              },
-              series: [{
-                  type: 'map',
-                  map: 'brazil',
-                  roam: true,
-                  emphasis: {
-                      label: {
-                          show: true,
-                          fontSize: 14,
-                          fontWeight: 'bold'
-                      }
-                  },
-                  data: data
-              }]
+              data: data
+            }]
           });
       })
       .catch(error => console.error("Erro ao carregar GeoJSON:", error));
