@@ -39,6 +39,13 @@
         No gráfico abaixo, pode-se observar a Distribuição de renda por estado para as famílias em um mapa de calor cloroplético do brasil (1º visualização) e informações importantes como média de renda e total de renda por estado ao passar do cursor no mapa (2º visualização).
     </p>
   </div>
+  <div style="text-align: center; padding: 10px;">
+    <label for="metricSelect"><strong>Selecione a métrica:</strong></label>
+    <select id="metricSelect">
+      <option value="valor">Valor Repassado</option>
+      <option value="media">Média por Família</option>
+    </select>
+  </div>
   <div id="container" style="max-width: 100%; height: 470px; padding: 10px 50px 10px 50px;"></div>
   <div id="footer" style="height: 2%">
     <p style="text-align:justify; padding: 20px 50px 0px 50px;"><b>Dicas para interagir com a visualização</b>:</p>
@@ -101,31 +108,54 @@
           const data = Object.keys(jsonData.valor_repassado_bolsa_familia_s).map(uf => ({
             name: ufToName[uf],
             value: jsonData.valor_repassado_bolsa_familia_s[uf],
-            familias: jsonData.qtd_familias_beneficiarias_bolsa_familia_s[uf]
+            familias: jsonData.qtd_familias_beneficiarias_bolsa_familia_s[uf],
+            media: jsonData.media_por_familia[uf]
           }));
   
           myChart.hideLoading();
-          myChart.setOption({
-            tooltip: {
-              trigger: 'item',
-              formatter: function (params) {
-                if (params.data) {
-                  return `
-                    <strong>${params.name}</strong><br/>
-                    Valor repassado: R$ ${params.data.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br/>
-                    Famílias beneficiadas: ${params.data.familias.toLocaleString('pt-BR')}
-                  `;
-                } else {
-                  return `${params.name}<br/>Sem dados`;
+          function renderMap(metric = 'valor') {
+            const isValor = metric === 'valor';
+            const titleText = isValor ? 'Valor Repassado' : 'Média por Família';
+          
+            const data = Object.keys(ufToName).map(uf => {
+              return {
+                name: ufToName[uf],
+                value: isValor
+                  ? jsonData.valor_repassado_bolsa_familia_s[uf]
+                  : jsonData.media_por_familia[uf],
+                familias: jsonData.qtd_familias_beneficiarias_bolsa_familia_s[uf],
+                media: jsonData.media_por_familia[uf]
+              };
+            });
+          
+            const visualMin = Math.min(...data.map(d => d.value));
+            const visualMax = Math.max(...data.map(d => d.value));
+          
+            // tenho que adicionar isso pq ficava bugando quando eu mudava de uma métrica para outra.
+            myChart.clear();
+          
+            myChart.setOption({
+              tooltip: {
+                trigger: 'item',
+                formatter: function (params) {
+                  if (params.data) {
+                    return `
+                      <strong>${params.name}</strong><br/>
+                      Valor repassado: R$ ${params.data.value.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}<br/>
+                      Famílias beneficiadas: ${params.data.familias.toLocaleString('pt-BR')}<br/>
+                      Média por família: R$ ${params.data.media.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    `;
+                  } else {
+                    return `${params.name}<br/>Sem dados`;
+                  }
                 }
-              }
-            },
-            visualMap: {
-                min: Math.min(...data.map(d => d.value)),
-                max: Math.max(...data.map(d => d.value)),
+              },
+              visualMap: {
+                min: visualMin,
+                max: visualMax,
                 left: 'left',
                 top: 'bottom',
-                text: ['Maior Valor Repassado', 'Menor Valor Repassado'],
+                text: [`Maior ${titleText}`, `Menor ${titleText}`],
                 calculable: true,
                 inRange: {
                   color: ['#ffffcc', '#a1dab4', '#41b6c4', '#2c7fb8', '#253494']
@@ -134,22 +164,28 @@
                   return 'R$ ' + value.toLocaleString('pt-BR', { minimumFractionDigits: 2 });
                 }
               },
-            series: [{
-              type: 'map',
-              map: 'brazil',
-              roam: true,
-              emphasis: {
-                label: {
-                  show: true,
-                  fontSize: 14,
-                  fontWeight: 'bold'
-                }
-              },
-              data: data
-            }]
+              series: [{
+                type: 'map',
+                map: 'brazil',
+                roam: true,
+                emphasis: {
+                  label: {
+                    show: true,
+                    fontSize: 14,
+                    fontWeight: 'bold'
+                  }
+                },
+                data: data
+              }]
+            });
+          }          
+  
+          renderMap();
+  
+          document.getElementById('metricSelect').addEventListener('change', function () {
+            renderMap(this.value);
           });
-      })
-      .catch(error => console.error("Erro ao carregar GeoJSON:", error));
-  </script>
-</body>
-</html>
+        });
+    </script>
+  </body>
+  </html>
